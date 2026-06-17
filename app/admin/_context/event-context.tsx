@@ -45,50 +45,43 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
     window.localStorage.setItem('activeEventId', activeEventId);
   }, [activeEventId]);
 
-  const syncUserProfile = useCallback(async (user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }) => {
-    const { data: existingProfile, error: selectError } = await supabaseBrowser
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .maybeSingle();
+  const syncUserProfile = useCallback(
+    async (user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }) => {
+      const { data: existingProfile, error: selectError } = await supabaseBrowser
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
 
-    if (selectError) {
-      throw selectError;
-    }
+      if (selectError) {
+        throw selectError;
+      }
 
-    if (existingProfile) {
-      setCurrentUser(existingProfile as UserRow);
-      return;
-    }
+      if (existingProfile) {
+        setCurrentUser(existingProfile as UserRow);
+        return;
+      }
 
-    const { count, error: countError } = await supabaseBrowser
-      .from('users')
-      .select('id', { head: true, count: 'exact' });
+      const { data: insertedProfile, error: insertError } = await supabaseBrowser
+        .from('users')
+        .insert({
+          id: user.id,
+          vorname: String(user.user_metadata?.vorname ?? ''),
+          name: String(user.user_metadata?.name ?? ''),
+          mail: user.email ?? '',
+          rolle: 'Volunteer',
+        })
+        .select('*')
+        .single();
 
-    if (countError) {
-      throw countError;
-    }
+      if (insertError) {
+        throw insertError;
+      }
 
-    const isFirstUser = (count ?? 0) === 0;
-
-    const { data: insertedProfile, error: insertError } = await supabaseBrowser
-      .from('users')
-      .insert({
-        id: user.id,
-        vorname: String(user.user_metadata?.vorname ?? ''),
-        name: String(user.user_metadata?.name ?? ''),
-        mail: user.email ?? '',
-        rolle: isFirstUser ? 'Admin' : 'Volunteer',
-      })
-      .select('*')
-      .single();
-
-    if (insertError) {
-      throw insertError;
-    }
-
-    setCurrentUser(insertedProfile as UserRow);
-  }, []);
+      setCurrentUser(insertedProfile as UserRow);
+    },
+    [],
+  );
 
   const refreshEvents = useCallback(async () => {
     const { data, error } = await supabaseBrowser
@@ -137,8 +130,8 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
         setAuthUser({ id: user.id, email: user.email ?? null });
         await syncUserProfile(user);
         await refreshEvents();
-      } catch {
-        // Errors are surfaced in the UI where actions are triggered.
+      } catch (error) {
+        console.error('Fehler beim Laden des Event-Kontexts', error);
       } finally {
         setLoading(false);
       }

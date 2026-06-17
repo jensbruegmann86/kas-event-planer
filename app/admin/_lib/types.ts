@@ -17,6 +17,8 @@ export type UserRow = {
   name: string;
   strasse: string | null;
   hausnummer: string | null;
+  plz: string | null;
+  ort: string | null;
   mobil: string | null;
   mail: string;
   kleidergroesse_tshirt: 'XS' | 'S' | 'M' | 'L' | 'XL' | '2XL' | '3XL' | null;
