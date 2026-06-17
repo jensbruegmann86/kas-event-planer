@@ -9,13 +9,14 @@ import {
   useState,
 } from 'react';
 import { supabaseBrowser } from '../_lib/supabase-browser';
-import type { EventRow, Rolle, UserRow } from '../_lib/types';
+import type { AuthUser, EventRow, Rolle, UserRow } from '../_lib/types';
 
 type EventContextValue = {
   events: EventRow[];
   activeEventId: string | null;
   activeEvent: EventRow | null;
   loading: boolean;
+  authUser: AuthUser | null;
   currentUser: UserRow | null;
   currentRole: Rolle | null;
   setActiveEventId: (id: string) => void;
@@ -29,7 +30,65 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [currentUser, setCurrentUser] = useState<UserRow | null>(null);
+
+  useEffect(() => {
+    const storedEventId = window.localStorage.getItem('activeEventId');
+    if (storedEventId) {
+      setActiveEventId(storedEventId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!activeEventId) return;
+    window.localStorage.setItem('activeEventId', activeEventId);
+  }, [activeEventId]);
+
+  const syncUserProfile = useCallback(async (user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }) => {
+    const { data: existingProfile, error: selectError } = await supabaseBrowser
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (selectError) {
+      throw selectError;
+    }
+
+    if (existingProfile) {
+      setCurrentUser(existingProfile as UserRow);
+      return;
+    }
+
+    const { count, error: countError } = await supabaseBrowser
+      .from('users')
+      .select('id', { head: true, count: 'exact' });
+
+    if (countError) {
+      throw countError;
+    }
+
+    const isFirstUser = (count ?? 0) === 0;
+
+    const { data: insertedProfile, error: insertError } = await supabaseBrowser
+      .from('users')
+      .insert({
+        id: user.id,
+        vorname: String(user.user_metadata?.vorname ?? ''),
+        name: String(user.user_metadata?.name ?? ''),
+        mail: user.email ?? '',
+        rolle: isFirstUser ? 'Admin' : 'Volunteer',
+      })
+      .select('*')
+      .single();
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    setCurrentUser(insertedProfile as UserRow);
+  }, []);
 
   const refreshEvents = useCallback(async () => {
     const { data, error } = await supabaseBrowser
@@ -50,8 +109,11 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
 
   const createEvent = useCallback(
     async (payload: { name: string; datum: string }) => {
-      const { error } = await supabaseBrowser.from('events').insert(payload);
+      const { data, error } = await supabaseBrowser.from('events').insert(payload).select('id').single();
       if (error) throw error;
+      if (data?.id) {
+        setActiveEventId(data.id);
+      }
       await refreshEvents();
     },
     [refreshEvents],
@@ -61,31 +123,47 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
     async function bootstrap() {
       setLoading(true);
       try {
-        await refreshEvents();
-
         const {
           data: { user },
         } = await supabaseBrowser.auth.getUser();
 
         if (!user) {
+          setAuthUser(null);
           setCurrentUser(null);
+          await refreshEvents();
           return;
         }
 
-        const { data } = await supabaseBrowser
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        setCurrentUser((data ?? null) as UserRow | null);
+        setAuthUser({ id: user.id, email: user.email ?? null });
+        await syncUserProfile(user);
+        await refreshEvents();
+      } catch {
+        // Errors are surfaced in the UI where actions are triggered.
       } finally {
         setLoading(false);
       }
     }
 
+    const {
+      data: { subscription },
+    } = supabaseBrowser.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
+        setAuthUser(null);
+        setCurrentUser(null);
+        return;
+      }
+
+      setAuthUser({ id: session.user.id, email: session.user.email ?? null });
+      void syncUserProfile(session.user);
+      void refreshEvents();
+    });
+
     void bootstrap();
-  }, [refreshEvents]);
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [refreshEvents, syncUserProfile]);
 
   const activeEvent = useMemo(
     () => events.find((row) => row.id === activeEventId) ?? null,
@@ -98,13 +176,14 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
       activeEventId,
       activeEvent,
       loading,
+      authUser,
       currentUser,
       currentRole: currentUser?.rolle ?? null,
       setActiveEventId,
       createEvent,
       refreshEvents,
     }),
-    [events, activeEventId, activeEvent, loading, currentUser, createEvent, refreshEvents],
+    [events, activeEventId, activeEvent, loading, authUser, currentUser, createEvent, refreshEvents],
   );
 
   return <EventContext.Provider value={value}>{children}</EventContext.Provider>;

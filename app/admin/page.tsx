@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { EventSwitcher } from './_components/event-switcher';
 import { LogoutButton } from './_components/logout-button';
@@ -8,7 +9,7 @@ import { VolunteersPanel } from './_components/volunteers-panel';
 import { EventProvider, useEventContext } from './_context/event-context';
 
 function DashboardContent() {
-  const { activeEvent, loading, currentRole, currentUser } = useEventContext();
+  const { activeEvent, loading, authUser, currentRole, currentUser } = useEventContext();
   const [tab, setTab] = useState<'standorte' | 'volunteers'>('standorte');
 
   const roleBadgeColor = useMemo(() => {
@@ -38,8 +39,20 @@ function DashboardContent() {
             Rolle: {currentRole ?? 'Nicht zugewiesen'}
           </span>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
-            {currentUser ? `${currentUser.vorname} ${currentUser.name}` : 'Nicht angemeldet'}
+            {currentUser
+              ? `${currentUser.vorname} ${currentUser.name}`
+              : authUser
+                ? authUser.email ?? 'Eingeloggt'
+                : 'Nicht angemeldet'}
           </span>
+          {authUser ? (
+            <Link
+              href="/admin/settings"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100"
+            >
+              Benutzereinstellungen
+            </Link>
+          ) : null}
           <LogoutButton />
         </div>
       </header>

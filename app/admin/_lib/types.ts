@@ -1,5 +1,10 @@
 export type Rolle = 'Admin' | 'Mitarbeiter' | 'Ansprechpartner' | 'Volunteer';
 
+export type AuthUser = {
+  id: string;
+  email: string | null;
+};
+
 export type EventRow = {
   id: string;
   name: string;
