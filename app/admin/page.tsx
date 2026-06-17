@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { EventSwitcher } from './_components/event-switcher';
+import { LogoutButton } from './_components/logout-button';
 import { StandortePanel } from './_components/standorte-panel';
 import { VolunteersPanel } from './_components/volunteers-panel';
 import { EventProvider, useEventContext } from './_context/event-context';
@@ -39,6 +40,7 @@ function DashboardContent() {
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
             {currentUser ? `${currentUser.vorname} ${currentUser.name}` : 'Nicht angemeldet'}
           </span>
+          <LogoutButton />
         </div>
       </header>
 
