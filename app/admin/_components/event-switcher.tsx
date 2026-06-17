@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { useEventContext } from '../_context/event-context';
+import { useOrgContext } from '../_context/org-context';
 
 export function EventSwitcher() {
   const {
@@ -11,6 +12,7 @@ export function EventSwitcher() {
     createEvent,
     loading,
   } = useEventContext();
+  const { org, isOrgAdmin } = useOrgContext();
 
   const [name, setName] = useState('');
   const [datum, setDatum] = useState('');
@@ -28,7 +30,7 @@ export function EventSwitcher() {
 
     setSaving(true);
     try {
-      await createEvent({ name: name.trim(), datum });
+      await createEvent({ name: name.trim(), datum, org_id: org?.id ?? null });
       setName('');
       setDatum('');
     } catch (err) {
@@ -62,27 +64,31 @@ export function EventSwitcher() {
         </select>
       </div>
 
-      <form onSubmit={onCreateEvent} className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
-        <input
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          placeholder="Neues Event (Name)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          type="date"
-          value={datum}
-          onChange={(e) => setDatum(e.target.value)}
-        />
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:opacity-50"
-        >
-          {saving ? 'Speichern...' : 'Event anlegen'}
-        </button>
-      </form>
+      {isOrgAdmin ? (
+        <form onSubmit={onCreateEvent} className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+          <input
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            placeholder="Neues Event (Name)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            type="date"
+            value={datum}
+            onChange={(e) => setDatum(e.target.value)}
+          />
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:opacity-50"
+          >
+            {saving ? 'Speichern...' : 'Event anlegen'}
+          </button>
+        </form>
+      ) : (
+        <p className="text-sm text-slate-500">Nur Admins koennen Events anlegen.</p>
+      )}
 
       {error ? <p className="mt-3 text-sm text-rose-700">{error}</p> : null}
     </section>

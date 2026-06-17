@@ -20,7 +20,7 @@ type EventContextValue = {
   currentUser: UserRow | null;
   currentRole: Rolle | null;
   setActiveEventId: (id: string) => void;
-  createEvent: (payload: { name: string; datum: string }) => Promise<void>;
+  createEvent: (payload: { name: string; datum: string; org_id?: string | null }) => Promise<void>;
   refreshEvents: () => Promise<void>;
 };
 
@@ -101,7 +101,7 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const createEvent = useCallback(
-    async (payload: { name: string; datum: string }) => {
+    async (payload: { name: string; datum: string; org_id?: string | null }) => {
       const { data, error } = await supabaseBrowser.from('events').insert(payload).select('id').single();
       if (error) throw error;
       if (data?.id) {

@@ -9,6 +9,27 @@ export type EventRow = {
   id: string;
   name: string;
   datum: string;
+  org_id: string | null;
+};
+
+export type OrgRow = {
+  id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+};
+
+export type OrgMemberRow = {
+  id: string;
+  org_id: string;
+  user_id: string | null;
+  email: string;
+  role: 'admin' | 'member';
+  status: 'pending' | 'active';
+  invited_by: string | null;
+  invited_at: string;
+  joined_at: string | null;
+  users?: { vorname: string; name: string } | null;
 };
 
 export type UserRow = {
