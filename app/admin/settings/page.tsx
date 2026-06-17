@@ -106,21 +106,9 @@ export default function SettingsPage() {
       return;
     }
 
-    const { data: existing, error: roleReadError } = await supabase
+    const { error: updateError } = await supabase
       .from('users')
-      .select('rolle')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (roleReadError) {
-      setError(roleReadError.message);
-      setSaving(false);
-      return;
-    }
-
-    const { error: upsertError } = await supabase.from('users').upsert(
-      {
-        id: user.id,
+      .update({
         vorname: form.vorname.trim(),
         name: form.name.trim(),
         mail: form.mail.trim(),
@@ -132,13 +120,11 @@ export default function SettingsPage() {
         kleidergroesse_tshirt: form.kleidergroesse_tshirt,
         kleidergroesse_jacke: form.kleidergroesse_jacke,
         schuhgroesse: form.schuhgroesse,
-        rolle: existing?.rolle ?? 'Volunteer',
-      },
-      { onConflict: 'id', ignoreDuplicates: false },
-    );
+      })
+      .eq('id', user.id);
 
-    if (upsertError) {
-      setError(upsertError.message);
+    if (updateError) {
+      setError(updateError.message);
       setSaving(false);
       return;
     }
