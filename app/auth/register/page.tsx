@@ -12,11 +12,13 @@ export default function RegisterPage() {
   const [mail, setMail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setSuccess(null);
 
     if (password.length < 8) {
       setError('Passwort muss mindestens 8 Zeichen haben.');
@@ -27,10 +29,10 @@ export default function RegisterPage() {
     const supabase = createSupabaseBrowserClient();
 
     const { data, error: authError } = await supabase.auth.signUp({
-      email: mail,
+      email: mail.trim(),
       password,
       options: {
-        data: { vorname, name },
+        data: { vorname: vorname.trim(), name: name.trim() },
       },
     });
 
@@ -40,16 +42,19 @@ export default function RegisterPage() {
       return;
     }
 
-    if (data.user) {
-      await supabase.from('users').upsert({
-        id: data.user.id,
-        vorname: vorname.trim(),
-        name: name.trim(),
-        mail: mail.trim(),
-        rolle: 'Volunteer',
-      });
+    if (!data.user) {
+      setError('Registrierung fehlgeschlagen. Bitte erneut versuchen.');
+      setLoading(false);
+      return;
     }
 
+    if (!data.session) {
+      setSuccess('Registrierung erfolgreich. Bitte bestaetige jetzt deine E-Mail und melde dich danach an.');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(false);
     router.push('/admin');
     router.refresh();
   }
@@ -62,7 +67,7 @@ export default function RegisterPage() {
       </div>
 
       <form onSubmit={onSubmit} className="grid gap-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <div className="grid gap-1.5">
             <label htmlFor="vorname" className="text-sm font-medium text-slate-700">
               Vorname
@@ -126,6 +131,12 @@ export default function RegisterPage() {
         {error ? (
           <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-rose-200">
             {error}
+          </p>
+        ) : null}
+
+        {success ? (
+          <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 ring-1 ring-emerald-200">
+            {success}
           </p>
         ) : null}
 
