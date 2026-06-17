@@ -67,7 +67,7 @@ export default function RegisterPage() {
       </div>
 
       <form onSubmit={onSubmit} className="grid gap-4">
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3">
           <div className="grid gap-1.5">
             <label htmlFor="vorname" className="text-sm font-medium text-slate-700">
               Vorname
