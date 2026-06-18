@@ -50,12 +50,24 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       p_email: user.email ?? '',
     });
 
-    const { data: myMembership } = await supabase
+    const { data: myMemberships, error: membershipError } = await supabase
       .from('organisation_members')
       .select('org_id, role')
       .eq('user_id', user.id)
       .eq('status', 'active')
-      .maybeSingle();
+      .order('joined_at', { ascending: false, nullsFirst: false })
+      .order('invited_at', { ascending: false, nullsFirst: false })
+      .limit(1);
+
+    if (membershipError) {
+      console.error('Fehler beim Laden der Organisationsmitgliedschaft', membershipError);
+      setOrg(null);
+      setMembers([]);
+      setMyOrgRole(null);
+      return;
+    }
+
+    const myMembership = myMemberships?.[0] ?? null;
 
     if (!myMembership) {
       setOrg(null);

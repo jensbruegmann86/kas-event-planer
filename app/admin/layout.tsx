@@ -37,22 +37,6 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             <Link href="/admin" className="text-base font-semibold text-slate-900">
               {org?.name ?? 'Volunteer Planer'}
             </Link>
-            <nav className="hidden items-center gap-1 md:flex">
-              {navItems.map((item) => {
-                const active = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`rounded-md px-3 py-1.5 text-sm transition ${
-                      active ? 'bg-emerald-100 text-emerald-900 font-medium' : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
           </div>
           <div className="flex items-center gap-2">
             {currentRole ? (

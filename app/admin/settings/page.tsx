@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '../../../lib/supabase/browser';
 
@@ -135,17 +134,11 @@ export default function SettingsPage() {
 
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-5">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Benutzereinstellungen</h1>
           <p className="mt-1 text-sm text-slate-600">Hier kannst du deine Stammdaten fuer das Dashboard pflegen.</p>
         </div>
-        <Link
-          href="/admin"
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-100"
-        >
-          Zurueck zum Dashboard
-        </Link>
       </div>
 
       {loading ? (

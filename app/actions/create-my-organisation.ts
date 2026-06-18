@@ -43,19 +43,18 @@ export async function createMyOrganisation(
     };
   }
 
-  const { data: existingActiveMembership, error: membershipCheckError } = await adminClient
+  const { data: existingMemberships, error: membershipCheckError } = await adminClient
     .from('organisation_members')
     .select('id')
     .eq('user_id', user.id)
     .eq('status', 'active')
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
   if (membershipCheckError) {
     return { error: membershipCheckError.message };
   }
 
-  if (existingActiveMembership) {
+  if ((existingMemberships?.length ?? 0) > 0) {
     return { error: 'Du bist bereits einer Organisation zugewiesen.' };
   }
 
