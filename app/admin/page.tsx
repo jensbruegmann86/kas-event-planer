@@ -15,10 +15,12 @@ function DashboardContent() {
   const [orgName, setOrgName] = useState('');
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [createOrgError, setCreateOrgError] = useState<string | null>(null);
+  const [createOrgSuccess, setCreateOrgSuccess] = useState<string | null>(null);
 
   async function onCreateOrganisation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setCreateOrgError(null);
+    setCreateOrgSuccess(null);
 
     const trimmedName = orgName.trim();
     if (!trimmedName) {
@@ -34,6 +36,7 @@ function DashboardContent() {
       return;
     }
 
+    setCreateOrgSuccess('Organisation wurde erstellt. Du bist jetzt Organisations-Admin.');
     setOrgName('');
     await refreshOrg();
     setCreatingOrg(false);
@@ -67,6 +70,12 @@ function DashboardContent() {
         {createOrgError ? (
           <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-rose-200">
             {createOrgError}
+          </p>
+        ) : null}
+
+        {createOrgSuccess ? (
+          <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 ring-1 ring-emerald-200">
+            {createOrgSuccess}
           </p>
         ) : null}
 
