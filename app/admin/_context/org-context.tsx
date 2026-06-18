@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { ensureMyOrgMembership } from '../../actions/ensure-my-org-membership';
 import { supabaseBrowser } from '../_lib/supabase-browser';
 import type { OrgMemberRow, OrgRow } from '../_lib/types';
 
@@ -73,6 +74,53 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     const myMembership = myMemberships?.[0] ?? null;
 
     if (!myMembership) {
+      const repairResult = await ensureMyOrgMembership();
+
+      if (!repairResult.ok && repairResult.error) {
+        console.error('Mitgliedschaft konnte nicht repariert werden', repairResult.error);
+      }
+
+      if (repairResult.repaired) {
+        const { data: repairedMemberships, error: repairedMembershipError } = await supabaseBrowser
+          .from('organisation_members')
+          .select('org_id, role')
+          .eq('user_id', currentUser.id)
+          .eq('status', 'active')
+          .order('invited_at', { ascending: false })
+          .limit(1);
+
+        if (repairedMembershipError) {
+          console.error('Fehler beim erneuten Laden der Mitgliedschaft', repairedMembershipError);
+          setOrg(null);
+          setMembers([]);
+          setMyOrgRole(null);
+          return;
+        }
+
+        const repairedMembership = repairedMemberships?.[0] ?? null;
+        if (!repairedMembership) {
+          setOrg(null);
+          setMembers([]);
+          setMyOrgRole(null);
+          return;
+        }
+
+        setMyOrgRole(repairedMembership.role as 'admin' | 'member');
+
+        const [{ data: orgData }, { data: membersData }] = await Promise.all([
+          supabaseBrowser.from('organisations').select('*').eq('id', repairedMembership.org_id).maybeSingle(),
+          supabaseBrowser
+            .from('organisation_members')
+            .select('*, users(vorname, name)')
+            .eq('org_id', repairedMembership.org_id)
+            .order('invited_at', { ascending: true }),
+        ]);
+
+        setOrg((orgData ?? null) as OrgRow | null);
+        setMembers((membersData ?? []) as OrgMemberRow[]);
+        return;
+      }
+
       setOrg(null);
       setMembers([]);
       setMyOrgRole(null);
