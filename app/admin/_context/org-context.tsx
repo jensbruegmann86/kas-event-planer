@@ -8,7 +8,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { createSupabaseBrowserClient } from '../../../lib/supabase/browser';
+import { supabaseBrowser } from '../_lib/supabase-browser';
 import type { OrgMemberRow, OrgRow } from '../_lib/types';
 
 type OrgContextValue = {
@@ -31,15 +31,13 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   const [orgLoading, setOrgLoading] = useState(true);
 
   const refreshOrg = useCallback(async () => {
-    const supabase = createSupabaseBrowserClient();
-
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await supabaseBrowser.auth.getUser();
 
     const {
       data: { session },
-    } = await supabase.auth.getSession();
+    } = await supabaseBrowser.auth.getSession();
 
     const currentUser = user ?? session?.user ?? null;
 
@@ -51,18 +49,17 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Activate any pending org invitations by email first
-    await supabase.rpc('activate_pending_org_memberships', {
+    await supabaseBrowser.rpc('activate_pending_org_memberships', {
       p_user_id: currentUser.id,
       p_email: currentUser.email ?? '',
     });
 
-    const { data: myMemberships, error: membershipError } = await supabase
+    const { data: myMemberships, error: membershipError } = await supabaseBrowser
       .from('organisation_members')
       .select('org_id, role')
       .eq('user_id', currentUser.id)
       .eq('status', 'active')
-      .order('joined_at', { ascending: false, nullsFirst: false })
-      .order('invited_at', { ascending: false, nullsFirst: false })
+      .order('invited_at', { ascending: false })
       .limit(1);
 
     if (membershipError) {
@@ -85,8 +82,8 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     setMyOrgRole(myMembership.role as 'admin' | 'member');
 
     const [{ data: orgData }, { data: membersData }] = await Promise.all([
-      supabase.from('organisations').select('*').eq('id', myMembership.org_id).maybeSingle(),
-      supabase
+      supabaseBrowser.from('organisations').select('*').eq('id', myMembership.org_id).maybeSingle(),
+      supabaseBrowser
         .from('organisation_members')
         .select('*, users(vorname, name)')
         .eq('org_id', myMembership.org_id)
@@ -100,8 +97,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   const updateOrgName = useCallback(
     async (name: string) => {
       if (!org) throw new Error('Keine Organisation geladen.');
-      const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase
+      const { error } = await supabaseBrowser
         .from('organisations')
         .update({ name })
         .eq('id', org.id);
@@ -113,8 +109,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   const removeMember = useCallback(
     async (memberId: string) => {
-      const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase
+      const { error } = await supabaseBrowser
         .from('organisation_members')
         .delete()
         .eq('id', memberId);
@@ -126,8 +121,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   const updateMemberRole = useCallback(
     async (memberId: string, role: 'admin' | 'member') => {
-      const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase
+      const { error } = await supabaseBrowser
         .from('organisation_members')
         .update({ role })
         .eq('id', memberId);
@@ -138,14 +132,12 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-
     setOrgLoading(true);
     refreshOrg().finally(() => setOrgLoading(false));
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabaseBrowser.auth.onAuthStateChange((_event, session) => {
       if (!session?.user) {
         setOrg(null);
         setMembers([]);
