@@ -37,7 +37,13 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const currentUser = user ?? session?.user ?? null;
+
+    if (!currentUser) {
       setOrg(null);
       setMembers([]);
       setMyOrgRole(null);
@@ -46,14 +52,14 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
     // Activate any pending org invitations by email first
     await supabase.rpc('activate_pending_org_memberships', {
-      p_user_id: user.id,
-      p_email: user.email ?? '',
+      p_user_id: currentUser.id,
+      p_email: currentUser.email ?? '',
     });
 
     const { data: myMemberships, error: membershipError } = await supabase
       .from('organisation_members')
       .select('org_id, role')
-      .eq('user_id', user.id)
+      .eq('user_id', currentUser.id)
       .eq('status', 'active')
       .order('joined_at', { ascending: false, nullsFirst: false })
       .order('invited_at', { ascending: false, nullsFirst: false })
@@ -132,8 +138,29 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+
     setOrgLoading(true);
     refreshOrg().finally(() => setOrgLoading(false));
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
+        setOrg(null);
+        setMembers([]);
+        setMyOrgRole(null);
+        setOrgLoading(false);
+        return;
+      }
+
+      setOrgLoading(true);
+      refreshOrg().finally(() => setOrgLoading(false));
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [refreshOrg]);
 
   const value = useMemo<OrgContextValue>(
