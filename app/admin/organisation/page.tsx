@@ -87,7 +87,7 @@ export default function OrganisationPage() {
   return (
     <div className="grid gap-6">
       {/* Org name */}
-      <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      <section id="organisation" className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <h1 className="text-xl font-semibold text-slate-900">Organisation</h1>
         {isOrgAdmin ? (
           <form onSubmit={onSaveOrgName} className="mt-4 flex gap-3">
@@ -159,7 +159,7 @@ export default function OrganisationPage() {
       )}
 
       {/* Members */}
-      <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      <section id="mitglieder" className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <h2 className="text-base font-semibold text-slate-900">
           Mitglieder{' '}
           <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-600">

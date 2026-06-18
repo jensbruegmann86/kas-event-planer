@@ -14,8 +14,14 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: '/admin', label: 'Dashboard', icon: '⊞' },
-    ...(isOrgAdmin ? [{ href: '/admin/organisation', label: 'Organisation', icon: '◈' }] : []),
+    { href: '/admin#events', label: 'Events', icon: '✦' },
     { href: '/admin/settings', label: 'Einstellungen', icon: '⚙' },
+  ];
+
+  const orgManageItems = [
+    { href: '/admin/organisation#mitglieder', label: 'Mitglieder', icon: '👥' },
+    { href: '/admin#events', label: 'Events', icon: '🗓' },
+    { href: '/admin/organisation#organisation', label: 'Organisationseinstellungen', icon: '✎' },
   ];
 
   const roleBadgeMap: Record<string, string> = {
@@ -61,7 +67,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           </p>
           <nav className="grid gap-0.5">
             {navItems.map((item) => {
-              const active = pathname === item.href;
+              const active = pathname === item.href || (item.href === '/admin#events' && pathname === '/admin');
               return (
                 <Link
                   key={item.href}
@@ -76,6 +82,35 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+
+          {(isOrgAdmin || currentRole === 'Admin') ? (
+            <div className="mt-4 border-t border-slate-100 pt-3">
+              <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Organisation Verwalten
+              </p>
+              <nav className="grid gap-0.5">
+                {orgManageItems.map((item) => {
+                  const active = item.href.startsWith('/admin/organisation')
+                    ? pathname === '/admin/organisation'
+                    : pathname === '/admin';
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
+                        active ? 'bg-emerald-100 text-emerald-900 font-medium' : 'text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-base leading-none">{item.icon}</span>
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          ) : null}
+
           {org ? (
             <div className="mt-4 border-t border-slate-100 pt-3 px-2">
               <p className="text-xs text-slate-400 mb-1">Organisation</p>
