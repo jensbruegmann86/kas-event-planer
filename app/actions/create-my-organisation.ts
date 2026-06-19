@@ -5,16 +5,20 @@ import { createSupabaseServerClient } from '../../lib/supabase/server';
 
 type CreateMyOrganisationPayload = {
   name: string;
+  firstEventName?: string;
+  firstEventDate?: string;
 };
 
 type CreateMyOrganisationResult =
-  | { success: true; orgId: string }
+  | { success: true; orgId: string; eventId?: string }
   | { error: string };
 
 export async function createMyOrganisation(
   payload: CreateMyOrganisationPayload,
 ): Promise<CreateMyOrganisationResult> {
   const orgName = payload.name.trim();
+  const firstEventName = payload.firstEventName?.trim() ?? '';
+  const firstEventDate = payload.firstEventDate?.trim() ?? '';
 
   if (orgName.length < 2) {
     return { error: 'Bitte einen gueltigen Organisationsnamen eingeben.' };
@@ -88,5 +92,24 @@ export async function createMyOrganisation(
     return { error: memberInsertError.message };
   }
 
-  return { success: true, orgId: orgData.id };
+  let createdEventId: string | undefined;
+  if (firstEventName && firstEventDate) {
+    const { data: eventData, error: eventInsertError } = await adminClient
+      .from('events')
+      .insert({
+        name: firstEventName,
+        datum: firstEventDate,
+        org_id: orgData.id,
+      })
+      .select('id')
+      .single();
+
+    if (eventInsertError) {
+      return { error: `Organisation angelegt, aber erstes Event konnte nicht erstellt werden: ${eventInsertError.message}` };
+    }
+
+    createdEventId = eventData?.id;
+  }
+
+  return { success: true, orgId: orgData.id, eventId: createdEventId };
 }

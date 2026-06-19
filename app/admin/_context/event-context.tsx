@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { createOrgEvent } from '../../actions/create-org-event';
 import { supabaseBrowser } from '../_lib/supabase-browser';
 import type { AuthUser, EventRow, Rolle, UserRow } from '../_lib/types';
 
@@ -102,11 +103,21 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
 
   const createEvent = useCallback(
     async (payload: { name: string; datum: string; org_id?: string | null }) => {
-      const { data, error } = await supabaseBrowser.from('events').insert(payload).select('id').single();
-      if (error) throw error;
-      if (data?.id) {
-        setActiveEventId(data.id);
+      if (!payload.org_id) {
+        throw new Error('Kein Organisationskontext vorhanden.');
       }
+
+      const result = await createOrgEvent({
+        orgId: payload.org_id,
+        name: payload.name,
+        datum: payload.datum,
+      });
+
+      if ('error' in result) {
+        throw new Error(result.error);
+      }
+
+      setActiveEventId(result.eventId);
       await refreshEvents();
     },
     [refreshEvents],
