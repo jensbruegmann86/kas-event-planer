@@ -1,42 +1,52 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { inviteMember } from '../../../../app/actions/invite-member';
+import { inviteMembers } from '../../../../app/actions/manage-org-members';
 import { useOrgContext } from '../../_context/org-context';
 import type { OrgMemberRow } from '../../_lib/types';
 
 export default function OrganisationMitgliederPage() {
   const { org, members, isOrgAdmin, orgLoading, removeMember, updateMemberRole, refreshOrg } = useOrgContext();
 
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteEmails, setInviteEmails] = useState('');
   const [inviteRole, setInviteRole] = useState<'admin' | 'member'>('member');
   const [inviting, setInviting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  function parseEmails(value: string) {
+    return value
+      .split(/[\n,;]+/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
   async function onInvite(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!org || !inviteEmail.trim()) return;
+    if (!org) return;
+
+    const emails = parseEmails(inviteEmails);
+    if (emails.length === 0) {
+      setError('Bitte mindestens eine E-Mail-Adresse eingeben.');
+      return;
+    }
 
     setInviting(true);
     setError(null);
     setMessage(null);
 
-    const result = await inviteMember({
+    const result = await inviteMembers({
       orgId: org.id,
-      email: inviteEmail.trim(),
+      emails,
       role: inviteRole,
     });
 
     if ('error' in result) {
       setError(result.error);
-    } else if ('warning' in result) {
-      setMessage(result.warning);
-      setInviteEmail('');
-      await refreshOrg();
     } else {
-      setMessage('Einladung wurde gesendet.');
-      setInviteEmail('');
+      const summary = result.outcomes.map((outcome) => `${outcome.email}: ${outcome.message}`).join(' | ');
+      setMessage(summary);
+      setInviteEmails('');
       await refreshOrg();
     }
 
@@ -69,17 +79,17 @@ export default function OrganisationMitgliederPage() {
     <div className="grid gap-6">
       <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <h1 className="text-xl font-semibold text-slate-900">Mitglied einladen</h1>
-        <p className="mt-1 text-sm text-slate-600">Lade neue Mitglieder in deine Organisation ein.</p>
+        <p className="mt-1 text-sm text-slate-600">Mehrere E-Mail-Adressen sind per Komma, Semikolon oder Zeilenumbruch möglich.</p>
 
-        <form onSubmit={onInvite} className="mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto]">
-          <input
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
-            type="email"
-            placeholder="E-Mail-Adresse"
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
+        <form onSubmit={onInvite} className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+          <textarea
+            className="min-h-28 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            placeholder="max@beispiel.de, anna@beispiel.de"
+            value={inviteEmails}
+            onChange={(e) => setInviteEmails(e.target.value)}
             required
           />
+          <div className="grid gap-3">
           <select
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             value={inviteRole}
@@ -95,6 +105,7 @@ export default function OrganisationMitgliederPage() {
           >
             {inviting ? 'Einladen...' : 'Einladen'}
           </button>
+          </div>
         </form>
 
         {message ? (
@@ -179,7 +190,7 @@ function MemberRow({
             member.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
           }`}
         >
-          {member.status === 'active' ? 'Aktiv' : 'Ausstehend'}
+          {member.status === 'active' ? 'Aktiv' : 'Eingeladen'}
         </span>
       </td>
       <td className="px-2 py-2">

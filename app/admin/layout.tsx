@@ -121,6 +121,16 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               </div>
             ) : null}
 
+            <Link
+              href="/admin/profil"
+              className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition ${
+                pathname === '/admin/profil' ? 'bg-emerald-100 text-emerald-900 font-medium' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <span className="text-base leading-none">◉</span>
+              Profil
+            </Link>
+
             {isOrgAdmin ? (
               <>
                 <button

@@ -9,6 +9,10 @@ import {
   useState,
 } from 'react';
 import { getMyOrganisationState } from '../../actions/get-my-organisation-state';
+import {
+  removeOrganisationMember,
+  updateOrganisationMemberRole,
+} from '../../actions/manage-org-members';
 import { supabaseBrowser } from '../_lib/supabase-browser';
 import type { OrgMemberRow, OrgRow } from '../_lib/types';
 
@@ -57,11 +61,8 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   const removeMember = useCallback(
     async (memberId: string) => {
-      const { error } = await supabaseBrowser
-        .from('organisation_members')
-        .delete()
-        .eq('id', memberId);
-      if (error) throw error;
+      const result = await removeOrganisationMember({ memberId });
+      if ('error' in result) throw new Error(result.error);
       await refreshOrg();
     },
     [refreshOrg],
@@ -69,11 +70,8 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   const updateMemberRole = useCallback(
     async (memberId: string, role: 'admin' | 'member') => {
-      const { error } = await supabaseBrowser
-        .from('organisation_members')
-        .update({ role })
-        .eq('id', memberId);
-      if (error) throw error;
+      const result = await updateOrganisationMemberRole({ memberId, role });
+      if ('error' in result) throw new Error(result.error);
       await refreshOrg();
     },
     [refreshOrg],
