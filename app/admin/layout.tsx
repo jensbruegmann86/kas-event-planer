@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogoutButton } from './_components/logout-button';
@@ -13,11 +13,6 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const { events, activeEventId, setActiveEventId, currentUser, authUser } = useEventContext();
   const [volunteersOpen, setVolunteersOpen] = useState(pathname.startsWith('/admin/volunteers'));
   const [orgOpen, setOrgOpen] = useState(pathname.startsWith('/admin/organisation'));
-
-  const activeEvent = useMemo(
-    () => events.find((event) => event.id === activeEventId) ?? null,
-    [events, activeEventId],
-  );
 
   useEffect(() => {
     setVolunteersOpen(pathname.startsWith('/admin/volunteers'));
@@ -41,8 +36,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex w-full items-center justify-center">
-            <label className="flex w-full max-w-xl flex-col gap-1 text-xs font-medium uppercase tracking-wide text-slate-400">
-              Event auswählen
+            <div className="w-full max-w-xl">
               <select
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
                 value={activeEventId ?? ''}
@@ -56,12 +50,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   </option>
                 ))}
               </select>
-              {activeEvent ? (
-                <span className="text-[11px] font-normal normal-case tracking-normal text-slate-500">
-                  Aktives Event: {activeEvent.name}
-                </span>
-              ) : null}
-            </label>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 justify-self-start md:justify-self-end">

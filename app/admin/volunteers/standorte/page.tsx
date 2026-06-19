@@ -1,6 +1,5 @@
 'use client';
 
-import { EventSwitcher } from '../../_components/event-switcher';
 import { StandortePanel } from '../../_components/standorte-panel';
 
 export default function StandortePage() {
@@ -10,8 +9,7 @@ export default function StandortePage() {
         <h1 className="text-xl font-semibold text-slate-900">Standorte</h1>
         <p className="text-sm text-slate-600">Verwalte die Standorte für das aktuell ausgewählte Event.</p>
       </div>
-      <EventSwitcher />
-      <div className="mt-6">
+      <div>
         <StandortePanel />
       </div>
     </section>
