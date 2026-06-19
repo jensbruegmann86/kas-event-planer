@@ -2,12 +2,14 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { inviteMember } from '../../../app/actions/invite-member';
+import { useEventContext } from '../_context/event-context';
 import { useOrgContext } from '../_context/org-context';
 import type { OrgMemberRow } from '../_lib/types';
 
 export default function OrganisationPage() {
   const { org, members, isOrgAdmin, orgLoading, updateOrgName, removeMember, updateMemberRole, refreshOrg } =
     useOrgContext();
+  const { events, activeEventId } = useEventContext();
 
   const [orgName, setOrgName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
@@ -52,15 +54,12 @@ export default function OrganisationPage() {
 
     if ('error' in result) {
       setError(result.error);
-    } else if ('warning' in result) {
-      setMessage(result.warning ?? '');
-      setInviteEmail('');
-      await refreshOrg();
     } else {
-      setMessage(`Einladung an ${inviteEmail} wurde gesendet.`);
+      setMessage('Einladung verarbeitet.');
       setInviteEmail('');
       await refreshOrg();
     }
+
     setInviting(false);
   }
 
@@ -86,7 +85,6 @@ export default function OrganisationPage() {
 
   return (
     <div className="grid gap-6">
-      {/* Org name */}
       <section id="organisation" className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <h1 className="text-xl font-semibold text-slate-900">Organisation</h1>
         {isOrgAdmin ? (
@@ -109,20 +107,19 @@ export default function OrganisationPage() {
         ) : (
           <p className="mt-2 text-base font-medium text-slate-800">{org.name}</p>
         )}
-        {message && (
+        {message ? (
           <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 ring-1 ring-emerald-200">
             {message}
           </p>
-        )}
-        {error && (
+        ) : null}
+        {error ? (
           <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-rose-200">
             {error}
           </p>
-        )}
+        ) : null}
       </section>
 
-      {/* Invite */}
-      {isOrgAdmin && (
+      {isOrgAdmin ? (
         <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
           <h2 className="text-base font-semibold text-slate-900">Mitglied einladen</h2>
           <p className="mt-1 text-sm text-slate-600">
@@ -156,9 +153,32 @@ export default function OrganisationPage() {
             </button>
           </form>
         </section>
-      )}
+      ) : null}
 
-      {/* Members */}
+      <section id="events" className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+        <h2 className="text-base font-semibold text-slate-900">Events</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Hier siehst du alle aktuell angelegten Events für diese Organisation.
+        </p>
+        <div className="mt-4 space-y-2">
+          {events.length === 0 ? (
+            <p className="text-sm text-slate-500">Noch keine Events vorhanden.</p>
+          ) : (
+            events.map((event) => (
+              <div
+                key={event.id}
+                className={`flex items-center justify-between rounded-xl border px-3 py-2 text-sm ${
+                  event.id === activeEventId ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-slate-50'
+                }`}
+              >
+                <span className="font-medium text-slate-800">{event.name}</span>
+                <span className="text-slate-500">{new Date(event.datum).toLocaleDateString('de-DE')}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
       <section id="mitglieder" className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <h2 className="text-base font-semibold text-slate-900">
           Mitglieder{' '}
@@ -174,7 +194,7 @@ export default function OrganisationPage() {
                 <th className="px-2 py-2">E-Mail</th>
                 <th className="px-2 py-2">Rolle</th>
                 <th className="px-2 py-2">Status</th>
-                {isOrgAdmin && <th className="px-2 py-2">Aktionen</th>}
+                {isOrgAdmin ? <th className="px-2 py-2">Aktionen</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -214,8 +234,7 @@ function MemberRow({
   onRemove: () => void;
   onRoleChange: (role: 'admin' | 'member') => void;
 }) {
-  const displayName =
-    member.users ? `${member.users.vorname} ${member.users.name}`.trim() : '–';
+  const displayName = member.users ? `${member.users.vorname} ${member.users.name}`.trim() : '–';
 
   return (
     <tr className="border-t border-slate-100">
@@ -234,9 +253,7 @@ function MemberRow({
         ) : (
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-              member.role === 'admin'
-                ? 'bg-emerald-100 text-emerald-800'
-                : 'bg-slate-100 text-slate-700'
+              member.role === 'admin' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
             }`}
           >
             {member.role === 'admin' ? 'Admin' : 'Benutzer'}
@@ -246,15 +263,13 @@ function MemberRow({
       <td className="px-2 py-2">
         <span
           className={`rounded-full px-2 py-0.5 text-xs ${
-            member.status === 'active'
-              ? 'bg-emerald-50 text-emerald-700'
-              : 'bg-amber-50 text-amber-700'
+            member.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
           }`}
         >
           {member.status === 'active' ? 'Aktiv' : 'Ausstehend'}
         </span>
       </td>
-      {isOrgAdmin && (
+      {isOrgAdmin ? (
         <td className="px-2 py-2">
           <button
             type="button"
@@ -264,7 +279,7 @@ function MemberRow({
             Entfernen
           </button>
         </td>
-      )}
+      ) : null}
     </tr>
   );
 }
