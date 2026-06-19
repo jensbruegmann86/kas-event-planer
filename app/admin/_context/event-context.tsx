@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { createOrgEvent } from '../../actions/create-org-event';
+import { getMyEvents } from '../../actions/get-my-events';
 import { supabaseBrowser } from '../_lib/supabase-browser';
 import type { AuthUser, EventRow, Rolle, UserRow } from '../_lib/types';
 
@@ -85,14 +86,12 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
   );
 
   const refreshEvents = useCallback(async () => {
-    const { data, error } = await supabaseBrowser
-      .from('events')
-      .select('id, name, datum')
-      .order('datum', { ascending: false });
+    const result = await getMyEvents();
+    if (result.error) {
+      throw new Error(result.error);
+    }
 
-    if (error) throw error;
-
-    const rows = (data ?? []) as EventRow[];
+    const rows = (result.events ?? []) as EventRow[];
     setEvents(rows);
 
     setActiveEventId((prev) => {
@@ -139,7 +138,11 @@ export function EventProvider({ children }: { children: React.ReactNode }) {
         }
 
         setAuthUser({ id: user.id, email: user.email ?? null });
-        await syncUserProfile(user);
+        try {
+          await syncUserProfile(user);
+        } catch (profileError) {
+          console.error('Fehler beim Laden des Benutzerprofils', profileError);
+        }
         await refreshEvents();
       } catch (error) {
         console.error('Fehler beim Laden des Event-Kontexts', error);
